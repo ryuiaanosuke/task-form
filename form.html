@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>タスク追加</title>
+  <title>タスク</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -22,12 +22,14 @@
     h1 { font-size: 20px; color: #111; margin-bottom: 28px; text-align: center; }
     .field { margin-bottom: 24px; }
     label { display: block; font-size: 15px; color: #444; margin-bottom: 8px; font-weight: 600; }
-    input[type="text"], select {
+    input[type="text"], input[type="date"], select {
       width: 100%; padding: 16px; border: 1.5px solid #e0e0e0;
       border-radius: 12px; font-size: 16px; color: #111; background: #fafafa;
       appearance: none; -webkit-appearance: none;
     }
-    input[type="text"]:focus, select:focus { outline: none; border-color: #06C755; background: white; }
+    input[type="text"]:focus, input[type="date"]:focus, select:focus {
+      outline: none; border-color: #06C755; background: white;
+    }
     .urgency-group { display: flex; gap: 12px; }
     .urgency-btn {
       flex: 1; padding: 16px 8px; border: 1.5px solid #e0e0e0;
@@ -46,12 +48,14 @@
     .success { text-align: center; padding: 60px 20px; display: none; }
     .success .icon { font-size: 56px; margin-bottom: 16px; }
     .success p { color: #333; font-size: 18px; }
+    .loading { text-align: center; padding: 40px; color: #888; font-size: 16px; }
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>📋 タスク追加</h1>
-    <div id="form-area">
+    <div id="loading-area" class="loading">読み込み中...</div>
+    <div id="form-area" style="display:none">
+      <h1 id="form-title">📋 タスク追加</h1>
       <div class="field">
         <label>タスク名</label>
         <input type="text" id="taskName" placeholder="例：●●社_事業計画書作成">
@@ -70,9 +74,9 @@
       <div class="field">
         <label>緊急性</label>
         <div class="urgency-group">
-          <div class="urgency-btn" onclick="selectUrgency('高', this)">🔴 高</div>
-          <div class="urgency-btn" onclick="selectUrgency('中', this)">🟡 中</div>
-          <div class="urgency-btn" onclick="selectUrgency('低', this)">🟢 低</div>
+          <div class="urgency-btn" onclick="selectUrgency('高', this)">高</div>
+          <div class="urgency-btn" onclick="selectUrgency('中', this)">中</div>
+          <div class="urgency-btn" onclick="selectUrgency('低', this)">低</div>
         </div>
       </div>
       <div class="field">
@@ -102,11 +106,15 @@
           <option value="完了">完了</option>
         </select>
       </div>
+      <div class="field">
+        <label>期限（任意）</label>
+        <input type="date" id="deadline">
+      </div>
       <button class="submit-btn" id="submitBtn" onclick="submitTask()">登録する</button>
     </div>
     <div class="success" id="success-area" style="display:none">
       <div class="icon">✅</div>
-      <p>タスクを登録しました！</p>
+      <p id="success-msg">タスクを登録しました！</p>
     </div>
   </div>
 
@@ -114,6 +122,7 @@
     const GAS_URL = 'https://script.google.com/macros/s/AKfycbwCfyiU-gtk86w92JUqGuoLUMdJltSZ6rf0W9tXOeOxYB0i90MeixoiM1-xdS3EtQK2/exec';
     const LIFF_ID = '2009673261-xpara1hm';
     let selectedUrgency = '';
+    let editTaskId = null;
 
     async function init() {
       try {
@@ -121,12 +130,57 @@
       } catch(e) {
         console.error('LIFF init error:', e);
       }
+
+      const params = new URLSearchParams(window.location.search);
+      const taskId = params.get('taskId');
+
+      if (taskId) {
+        editTaskId = taskId;
+        await loadTask(taskId);
+      } else {
+        document.getElementById('loading-area').style.display = 'none';
+        document.getElementById('form-area').style.display = 'block';
+      }
+    }
+
+    async function loadTask(taskId) {
+      try {
+        const res = await fetch(GAS_URL + '?action=getTask&taskId=' + encodeURIComponent(taskId));
+        const task = await res.json();
+        if (task && task.taskId) {
+          document.getElementById('form-title').textContent = '✏️ タスク編集';
+          document.getElementById('taskName').value = task.name || '';
+          document.getElementById('category').value = task.category || '';
+          document.getElementById('progress').value = task.progress || '0%';
+          document.getElementById('status').value = task.status || '未対応';
+          if (task.deadline) {
+            document.getElementById('deadline').value = task.deadline;
+          }
+          selectUrgencyByValue(task.urgency || '');
+          document.getElementById('submitBtn').textContent = '更新する';
+        }
+        document.getElementById('loading-area').style.display = 'none';
+        document.getElementById('form-area').style.display = 'block';
+      } catch(e) {
+        document.getElementById('loading-area').textContent = '読み込みに失敗しました。';
+      }
     }
 
     function selectUrgency(level, el) {
       selectedUrgency = level;
       document.querySelectorAll('.urgency-btn').forEach(btn => { btn.className = 'urgency-btn'; });
       el.classList.add('selected-' + level);
+    }
+
+    function selectUrgencyByValue(level) {
+      selectedUrgency = level;
+      document.querySelectorAll('.urgency-btn').forEach(btn => {
+        btn.className = 'urgency-btn';
+        const text = btn.textContent.trim();
+        if (text === level) {
+          btn.classList.add('selected-' + level);
+        }
+      });
     }
 
     async function submitTask() {
@@ -140,12 +194,16 @@
         urgency: selectedUrgency,
         progress: document.getElementById('progress').value,
         status: document.getElementById('status').value,
+        deadline: document.getElementById('deadline').value || '',
       };
 
       document.getElementById('submitBtn').disabled = true;
 
+      const action = editTaskId ? 'updateTask' : 'addTask';
+      if (editTaskId) task.taskId = editTaskId;
+
       try {
-        const res = await fetch(GAS_URL + '?action=addTask', {
+        const res = await fetch(GAS_URL + '?action=' + action, {
           method: 'POST',
           body: JSON.stringify(task)
         });
@@ -153,12 +211,13 @@
         if (data.success) {
           document.getElementById('form-area').style.display = 'none';
           document.getElementById('success-area').style.display = 'block';
+          document.getElementById('success-msg').textContent = editTaskId ? 'タスクを更新しました！' : 'タスクを登録しました！';
           setTimeout(() => {
             if (liff.isInClient()) liff.closeWindow();
           }, 1500);
         }
       } catch(e) {
-        alert('登録に失敗しました。再度お試しください。');
+        alert(editTaskId ? '更新に失敗しました。' : '登録に失敗しました。');
         document.getElementById('submitBtn').disabled = false;
       }
     }
