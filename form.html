@@ -46,21 +46,26 @@
     .success { text-align: center; padding: 60px 20px; display: none; }
     .success .icon { font-size: 56px; margin-bottom: 16px; }
     .success p { color: #333; font-size: 18px; }
-    .loading { text-align: center; padding: 40px; color: #888; font-size: 16px; }
   </style>
 </head>
 <body>
   <div class="card">
     <h1>📋 タスク追加</h1>
-    <div id="loading-area" class="loading">読み込み中...</div>
-    <div id="form-area" style="display:none">
+    <div id="form-area">
       <div class="field">
         <label>タスク名</label>
         <input type="text" id="taskName" placeholder="例：●●社_事業計画書作成">
       </div>
       <div class="field">
         <label>種類</label>
-        <select id="category"></select>
+        <select id="category">
+          <option value="補助金業務">補助金業務</option>
+          <option value="BeFP業務">BeFP業務</option>
+          <option value="顧客対応">顧客対応</option>
+          <option value="財務">財務</option>
+          <option value="プライベート">プライベート</option>
+          <option value="業務指示">業務指示</option>
+        </select>
       </div>
       <div class="field">
         <label>緊急性</label>
@@ -73,11 +78,16 @@
       <div class="field">
         <label>進捗</label>
         <select id="progress">
-          <option value="0%">0%</option><option value="10%">10%</option>
-          <option value="20%">20%</option><option value="30%">30%</option>
-          <option value="40%">40%</option><option value="50%">50%</option>
-          <option value="60%">60%</option><option value="70%">70%</option>
-          <option value="80%">80%</option><option value="90%">90%</option>
+          <option value="0%">0%</option>
+          <option value="10%">10%</option>
+          <option value="20%">20%</option>
+          <option value="30%">30%</option>
+          <option value="40%">40%</option>
+          <option value="50%">50%</option>
+          <option value="60%">60%</option>
+          <option value="70%">70%</option>
+          <option value="80%">80%</option>
+          <option value="90%">90%</option>
           <option value="100%">100%</option>
         </select>
       </div>
@@ -92,7 +102,7 @@
       </div>
       <button class="submit-btn" id="submitBtn" onclick="submitTask()">登録する</button>
     </div>
-    <div class="success" id="success-area">
+    <div class="success" id="success-area" style="display:none">
       <div class="icon">✅</div>
       <p>タスクを登録しました！</p>
     </div>
@@ -104,36 +114,10 @@
     let selectedUrgency = '';
 
     async function init() {
-      // まず種類を読み込む（LIFF初期化より先に）
-      await loadCategories();
-      // その後LIFFを初期化
       try {
         await liff.init({ liffId: LIFF_ID });
       } catch(e) {
         console.error('LIFF init error:', e);
-      }
-    }
-
-    async function loadCategories() {
-      try {
-        const res = await fetch(GAS_URL + '?action=getCategories', {
-          method: 'GET',
-          mode: 'cors',
-        });
-        const data = await res.json();
-        const select = document.getElementById('category');
-        select.innerHTML = '';
-        data.categories.forEach(cat => {
-          const opt = document.createElement('option');
-          opt.value = cat;
-          opt.textContent = cat;
-          select.appendChild(opt);
-        });
-        document.getElementById('loading-area').style.display = 'none';
-        document.getElementById('form-area').style.display = 'block';
-      } catch(e) {
-        console.error('loadCategories error:', e);
-        document.getElementById('loading-area').textContent = '読み込みに失敗しました。再度開いてください。';
       }
     }
 
@@ -161,7 +145,6 @@
       try {
         const res = await fetch(GAS_URL + '?action=addTask', {
           method: 'POST',
-          mode: 'cors',
           body: JSON.stringify(task)
         });
         const data = await res.json();
