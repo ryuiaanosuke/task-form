@@ -19,101 +19,49 @@
       padding: 28px 20px;
       box-shadow: 0 2px 12px rgba(0,0,0,0.08);
     }
-    h1 {
-      font-size: 20px;
-      color: #111;
-      margin-bottom: 28px;
-      text-align: center;
-    }
-    .field {
-      margin-bottom: 24px;
-    }
-    label {
-      display: block;
-      font-size: 15px;
-      color: #444;
-      margin-bottom: 8px;
-      font-weight: 600;
-    }
+    h1 { font-size: 20px; color: #111; margin-bottom: 28px; text-align: center; }
+    .field { margin-bottom: 24px; }
+    label { display: block; font-size: 15px; color: #444; margin-bottom: 8px; font-weight: 600; }
     input[type="text"], select {
-      width: 100%;
-      padding: 16px;
-      border: 1.5px solid #e0e0e0;
-      border-radius: 12px;
-      font-size: 16px;
-      color: #111;
-      background: #fafafa;
-      appearance: none;
-      -webkit-appearance: none;
+      width: 100%; padding: 16px; border: 1.5px solid #e0e0e0;
+      border-radius: 12px; font-size: 16px; color: #111; background: #fafafa;
+      appearance: none; -webkit-appearance: none;
     }
-    input[type="text"]:focus, select:focus {
-      outline: none;
-      border-color: #06C755;
-      background: white;
-    }
-    .urgency-group {
-      display: flex;
-      gap: 12px;
-    }
+    input[type="text"]:focus, select:focus { outline: none; border-color: #06C755; background: white; }
+    .urgency-group { display: flex; gap: 12px; }
     .urgency-btn {
-      flex: 1;
-      padding: 16px 8px;
-      border: 1.5px solid #e0e0e0;
-      border-radius: 12px;
-      background: #fafafa;
-      font-size: 16px;
-      cursor: pointer;
-      text-align: center;
-      transition: all 0.15s;
+      flex: 1; padding: 16px 8px; border: 1.5px solid #e0e0e0;
+      border-radius: 12px; background: #fafafa; font-size: 16px;
+      cursor: pointer; text-align: center; transition: all 0.15s;
     }
     .urgency-btn.selected-高 { background: #fff0f0; border-color: #ff4444; color: #ff4444; font-weight: bold; }
     .urgency-btn.selected-中 { background: #fffbe6; border-color: #f5a623; color: #f5a623; font-weight: bold; }
     .urgency-btn.selected-低 { background: #f0fff4; border-color: #06C755; color: #06C755; font-weight: bold; }
     .submit-btn {
-      width: 100%;
-      padding: 18px;
-      background: #06C755;
-      color: white;
-      border: none;
-      border-radius: 14px;
-      font-size: 18px;
-      font-weight: bold;
-      cursor: pointer;
-      margin-top: 8px;
+      width: 100%; padding: 18px; background: #06C755; color: white;
+      border: none; border-radius: 14px; font-size: 18px; font-weight: bold;
+      cursor: pointer; margin-top: 8px;
     }
     .submit-btn:disabled { background: #ccc; }
-    .success {
-      text-align: center;
-      padding: 60px 20px;
-      display: none;
-    }
+    .success { text-align: center; padding: 60px 20px; display: none; }
     .success .icon { font-size: 56px; margin-bottom: 16px; }
     .success p { color: #333; font-size: 18px; }
-    .loading {
-      text-align: center;
-      padding: 40px;
-      color: #888;
-      font-size: 16px;
-    }
+    .loading { text-align: center; padding: 40px; color: #888; font-size: 16px; }
   </style>
 </head>
 <body>
   <div class="card">
     <h1>📋 タスク追加</h1>
-
     <div id="loading-area" class="loading">読み込み中...</div>
-
     <div id="form-area" style="display:none">
       <div class="field">
         <label>タスク名</label>
         <input type="text" id="taskName" placeholder="例：●●社_事業計画書作成">
       </div>
-
       <div class="field">
         <label>種類</label>
         <select id="category"></select>
       </div>
-
       <div class="field">
         <label>緊急性</label>
         <div class="urgency-group">
@@ -122,24 +70,17 @@
           <div class="urgency-btn" onclick="selectUrgency('低', this)">🟢 低</div>
         </div>
       </div>
-
       <div class="field">
         <label>進捗</label>
         <select id="progress">
-          <option value="0%">0%</option>
-          <option value="10%">10%</option>
-          <option value="20%">20%</option>
-          <option value="30%">30%</option>
-          <option value="40%">40%</option>
-          <option value="50%">50%</option>
-          <option value="60%">60%</option>
-          <option value="70%">70%</option>
-          <option value="80%">80%</option>
-          <option value="90%">90%</option>
+          <option value="0%">0%</option><option value="10%">10%</option>
+          <option value="20%">20%</option><option value="30%">30%</option>
+          <option value="40%">40%</option><option value="50%">50%</option>
+          <option value="60%">60%</option><option value="70%">70%</option>
+          <option value="80%">80%</option><option value="90%">90%</option>
           <option value="100%">100%</option>
         </select>
       </div>
-
       <div class="field">
         <label>ステータス</label>
         <select id="status">
@@ -149,10 +90,8 @@
           <option value="完了">完了</option>
         </select>
       </div>
-
       <button class="submit-btn" id="submitBtn" onclick="submitTask()">登録する</button>
     </div>
-
     <div class="success" id="success-area">
       <div class="icon">✅</div>
       <p>タスクを登録しました！</p>
@@ -161,20 +100,26 @@
 
   <script>
     const GAS_URL = 'https://script.google.com/macros/s/AKfycbwCfyiU-gtk86w92JUqGuoLUMdJltSZ6rf0W9tXOeOxYB0i90MeixoiM1-xdS3EtQK2/exec';
+    const LIFF_ID = '2009673261-xpara1hm';
     let selectedUrgency = '';
 
     async function init() {
+      // まず種類を読み込む（LIFF初期化より先に）
+      await loadCategories();
+      // その後LIFFを初期化
       try {
-        await liff.init({ liffId: '2009673261-xpara1hm' });
+        await liff.init({ liffId: LIFF_ID });
       } catch(e) {
         console.error('LIFF init error:', e);
       }
-      loadCategories();
     }
 
     async function loadCategories() {
       try {
-        const res = await fetch(GAS_URL + '?action=getCategories');
+        const res = await fetch(GAS_URL + '?action=getCategories', {
+          method: 'GET',
+          mode: 'cors',
+        });
         const data = await res.json();
         const select = document.getElementById('category');
         select.innerHTML = '';
@@ -187,15 +132,14 @@
         document.getElementById('loading-area').style.display = 'none';
         document.getElementById('form-area').style.display = 'block';
       } catch(e) {
+        console.error('loadCategories error:', e);
         document.getElementById('loading-area').textContent = '読み込みに失敗しました。再度開いてください。';
       }
     }
 
     function selectUrgency(level, el) {
       selectedUrgency = level;
-      document.querySelectorAll('.urgency-btn').forEach(btn => {
-        btn.className = 'urgency-btn';
-      });
+      document.querySelectorAll('.urgency-btn').forEach(btn => { btn.className = 'urgency-btn'; });
       el.classList.add('selected-' + level);
     }
 
@@ -217,6 +161,7 @@
       try {
         const res = await fetch(GAS_URL + '?action=addTask', {
           method: 'POST',
+          mode: 'cors',
           body: JSON.stringify(task)
         });
         const data = await res.json();
