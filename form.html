@@ -48,14 +48,12 @@
     .success { text-align: center; padding: 60px 20px; display: none; }
     .success .icon { font-size: 56px; margin-bottom: 16px; }
     .success p { color: #333; font-size: 18px; }
-    .loading { text-align: center; padding: 40px; color: #888; font-size: 16px; }
   </style>
 </head>
 <body>
   <div class="card">
-    <div id="loading-area" class="loading">読み込み中...</div>
-    <div id="form-area" style="display:none">
-      <h1 id="form-title">📋 タスク追加</h1>
+    <h1 id="form-title">📋 タスク追加</h1>
+    <div id="form-area">
       <div class="field">
         <label>タスク名</label>
         <input type="text" id="taskName" placeholder="例：●●社_事業計画書作成">
@@ -135,34 +133,16 @@
       const taskId = params.get('taskId');
 
       if (taskId) {
+        // 編集モード：URLパラメータからデータを取得
         editTaskId = taskId;
-        await loadTask(taskId);
-      } else {
-        document.getElementById('loading-area').style.display = 'none';
-        document.getElementById('form-area').style.display = 'block';
-      }
-    }
-
-    async function loadTask(taskId) {
-      try {
-        const res = await fetch(GAS_URL + '?action=getTask&taskId=' + encodeURIComponent(taskId));
-        const task = await res.json();
-        if (task && task.taskId) {
-          document.getElementById('form-title').textContent = '✏️ タスク編集';
-          document.getElementById('taskName').value = task.name || '';
-          document.getElementById('category').value = task.category || '';
-          document.getElementById('progress').value = task.progress || '0%';
-          document.getElementById('status').value = task.status || '未対応';
-          if (task.deadline) {
-            document.getElementById('deadline').value = task.deadline;
-          }
-          selectUrgencyByValue(task.urgency || '');
-          document.getElementById('submitBtn').textContent = '更新する';
-        }
-        document.getElementById('loading-area').style.display = 'none';
-        document.getElementById('form-area').style.display = 'block';
-      } catch(e) {
-        document.getElementById('loading-area').textContent = '読み込みに失敗しました。';
+        document.getElementById('form-title').textContent = '✏️ タスク編集';
+        document.getElementById('taskName').value = params.get('name') || '';
+        document.getElementById('category').value = params.get('category') || '';
+        document.getElementById('progress').value = params.get('progress') || '0%';
+        document.getElementById('status').value = params.get('status') || '未対応';
+        document.getElementById('deadline').value = params.get('deadline') || '';
+        selectUrgencyByValue(params.get('urgency') || '');
+        document.getElementById('submitBtn').textContent = '更新する';
       }
     }
 
@@ -176,8 +156,7 @@
       selectedUrgency = level;
       document.querySelectorAll('.urgency-btn').forEach(btn => {
         btn.className = 'urgency-btn';
-        const text = btn.textContent.trim();
-        if (text === level) {
+        if (btn.textContent.trim() === level) {
           btn.classList.add('selected-' + level);
         }
       });
