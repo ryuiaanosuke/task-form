@@ -38,6 +38,11 @@
       border: none; border-radius: 8px; font-size: 14px; font-weight: bold;
       cursor: pointer; width: 100%; margin-top: 8px;
     }
+    .btn-add {
+      width: 100%; padding: 16px; background: #06C755; color: white;
+      border: none; border-radius: 12px; font-size: 16px; font-weight: bold;
+      cursor: pointer; margin-bottom: 16px;
+    }
     .error { color: #ff4444; font-size: 14px; margin-top: 8px; text-align: center; }
     .task-card {
       background: white;
@@ -124,11 +129,13 @@
 
   <div id="list-area" style="display:none">
     <div class="header-bar">📋 タスク一覧</div>
+    <button class="btn-add" onclick="openAddModal()">＋ タスクを追加</button>
     <div id="loading" class="loading">読み込み中...</div>
     <div id="task-list"></div>
   </div>
 
-  <div class="modal-overlay" id="modal">
+  <!-- 編集モーダル -->
+  <div class="modal-overlay" id="edit-modal">
     <div class="modal">
       <h2>✏️ タスク編集</h2>
       <div class="modal-field">
@@ -148,10 +155,10 @@
       </div>
       <div class="modal-field">
         <label>緊急性</label>
-        <div class="urgency-group">
-          <div class="urgency-btn" onclick="selectEditUrgency('高', this)">高</div>
-          <div class="urgency-btn" onclick="selectEditUrgency('中', this)">中</div>
-          <div class="urgency-btn" onclick="selectEditUrgency('低', this)">低</div>
+        <div class="urgency-group" id="edit-urgency-group">
+          <div class="urgency-btn" onclick="selectUrgency('edit', '高', this)">高</div>
+          <div class="urgency-btn" onclick="selectUrgency('edit', '中', this)">中</div>
+          <div class="urgency-btn" onclick="selectUrgency('edit', '低', this)">低</div>
         </div>
       </div>
       <div class="modal-field">
@@ -190,8 +197,77 @@
         <textarea id="edit-memo" placeholder="メモや補足を入力"></textarea>
       </div>
       <div class="modal-buttons">
-        <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
-        <button class="btn-save" id="save-btn" onclick="saveTask()">保存する</button>
+        <button class="btn-cancel" onclick="closeEditModal()">キャンセル</button>
+        <button class="btn-save" id="edit-save-btn" onclick="saveTask()">保存する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 追加モーダル -->
+  <div class="modal-overlay" id="add-modal">
+    <div class="modal">
+      <h2>➕ タスク追加</h2>
+      <div class="modal-field">
+        <label>タスク名</label>
+        <input type="text" id="add-name" placeholder="タスク名を入力">
+      </div>
+      <div class="modal-field">
+        <label>種類</label>
+        <select id="add-category">
+          <option value="補助金業務">補助金業務</option>
+          <option value="BeFP業務">BeFP業務</option>
+          <option value="顧客対応">顧客対応</option>
+          <option value="財務">財務</option>
+          <option value="プライベート">プライベート</option>
+          <option value="業務指示">業務指示</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label>緊急性</label>
+        <div class="urgency-group" id="add-urgency-group">
+          <div class="urgency-btn" onclick="selectUrgency('add', '高', this)">高</div>
+          <div class="urgency-btn" onclick="selectUrgency('add', '中', this)">中</div>
+          <div class="urgency-btn" onclick="selectUrgency('add', '低', this)">低</div>
+        </div>
+      </div>
+      <div class="modal-field">
+        <label>進捗</label>
+        <select id="add-progress">
+          <option value="0%">0%</option>
+          <option value="10%">10%</option>
+          <option value="20%">20%</option>
+          <option value="30%">30%</option>
+          <option value="40%">40%</option>
+          <option value="50%">50%</option>
+          <option value="60%">60%</option>
+          <option value="70%">70%</option>
+          <option value="80%">80%</option>
+          <option value="90%">90%</option>
+          <option value="100%">100%</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label>進捗状況</label>
+        <select id="add-status">
+          <option value="未対応">未対応</option>
+          <option value="進捗中">進捗中</option>
+          <option value="待ち（顧客・取引先）">待ち（顧客・取引先）</option>
+          <option value="待ち（スタッフ）">待ち（スタッフ）</option>
+          <option value="スタッフ対応中">スタッフ対応中</option>
+          <option value="完了">完了</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label>期限（任意）</label>
+        <input type="date" id="add-deadline">
+      </div>
+      <div class="modal-field">
+        <label>備考（任意）</label>
+        <textarea id="add-memo" placeholder="メモや補足を入力"></textarea>
+      </div>
+      <div class="modal-buttons">
+        <button class="btn-cancel" onclick="closeAddModal()">キャンセル</button>
+        <button class="btn-save" id="add-save-btn" onclick="addTask()">追加する</button>
       </div>
     </div>
   </div>
@@ -201,6 +277,7 @@
     let sessionPassword = '';
     let editingTaskId = null;
     let editUrgency = '';
+    let addUrgency = '';
     let allTasks = [];
 
     async function login() {
@@ -210,7 +287,6 @@
       btn.disabled = true;
       btn.textContent = '確認中...';
       document.getElementById('login-error').textContent = '';
-
       try {
         const res = await fetch(GAS_URL + '?action=checkPassword&password=' + encodeURIComponent(input));
         const data = await res.json();
@@ -267,7 +343,7 @@
             <div class="task-detail">状況：<span>${task.status}</span></div>
             ${deadlineText ? `<div class="task-detail">期限：<span>${deadlineText}</span></div>` : ''}
             ${task.memo ? `<div class="task-detail">備考：<span>${task.memo}</span></div>` : ''}
-            <button class="btn-edit" onclick="openModal('${task.taskId}')">編集する</button>
+            <button class="btn-edit" onclick="openEditModal('${task.taskId}')">編集する</button>
           </div>
         `;
       }).join('');
@@ -282,7 +358,16 @@
       } catch(e) { return str; }
     }
 
-    function openModal(taskId) {
+    function selectUrgency(mode, level, el) {
+      const groupId = mode + '-urgency-group';
+      document.querySelectorAll('#' + groupId + ' .urgency-btn').forEach(btn => { btn.className = 'urgency-btn'; });
+      el.classList.add('selected-' + level);
+      if (mode === 'edit') editUrgency = level;
+      if (mode === 'add') addUrgency = level;
+    }
+
+    // 編集モーダル
+    function openEditModal(taskId) {
       const task = allTasks.find(t => t.taskId === taskId);
       if (!task) return;
       editingTaskId = taskId;
@@ -292,33 +377,22 @@
       document.getElementById('edit-status').value = task.status;
       document.getElementById('edit-deadline').value = task.deadline || '';
       document.getElementById('edit-memo').value = task.memo || '';
-      selectEditUrgencyByValue(task.urgency);
-      document.getElementById('modal').style.display = 'block';
-    }
-
-    function closeModal() {
-      document.getElementById('modal').style.display = 'none';
-      editingTaskId = null;
-    }
-
-    function selectEditUrgency(level, el) {
-      editUrgency = level;
-      document.querySelectorAll('.urgency-btn').forEach(btn => { btn.className = 'urgency-btn'; });
-      el.classList.add('selected-' + level);
-    }
-
-    function selectEditUrgencyByValue(level) {
-      editUrgency = level;
-      document.querySelectorAll('.urgency-btn').forEach(btn => {
+      editUrgency = task.urgency;
+      document.querySelectorAll('#edit-urgency-group .urgency-btn').forEach(btn => {
         btn.className = 'urgency-btn';
-        if (btn.textContent.trim() === level) btn.classList.add('selected-' + level);
+        if (btn.textContent.trim() === task.urgency) btn.classList.add('selected-' + task.urgency);
       });
+      document.getElementById('edit-modal').style.display = 'block';
+    }
+
+    function closeEditModal() {
+      document.getElementById('edit-modal').style.display = 'none';
+      editingTaskId = null;
     }
 
     async function saveTask() {
       if (!editingTaskId) return;
       if (!editUrgency) { alert('緊急性を選択してください'); return; }
-
       const task = {
         taskId: editingTaskId,
         name: document.getElementById('edit-name').value.trim(),
@@ -330,9 +404,8 @@
         memo: document.getElementById('edit-memo').value || '',
         password: sessionPassword,
       };
-
-      document.getElementById('save-btn').disabled = true;
-
+      const btn = document.getElementById('edit-save-btn');
+      btn.disabled = true;
       try {
         const res = await fetch(GAS_URL + '?action=updateTask', {
           method: 'POST',
@@ -340,7 +413,7 @@
         });
         const data = await res.json();
         if (data.success) {
-          closeModal();
+          closeEditModal();
           loadTasks();
         } else {
           alert('保存に失敗しました。');
@@ -348,7 +421,58 @@
       } catch(e) {
         alert('保存に失敗しました。');
       }
-      document.getElementById('save-btn').disabled = false;
+      btn.disabled = false;
+    }
+
+    // 追加モーダル
+    function openAddModal() {
+      document.getElementById('add-name').value = '';
+      document.getElementById('add-category').value = '補助金業務';
+      document.getElementById('add-progress').value = '0%';
+      document.getElementById('add-status').value = '未対応';
+      document.getElementById('add-deadline').value = '';
+      document.getElementById('add-memo').value = '';
+      addUrgency = '';
+      document.querySelectorAll('#add-urgency-group .urgency-btn').forEach(btn => { btn.className = 'urgency-btn'; });
+      document.getElementById('add-modal').style.display = 'block';
+    }
+
+    function closeAddModal() {
+      document.getElementById('add-modal').style.display = 'none';
+    }
+
+    async function addTask() {
+      if (!addUrgency) { alert('緊急性を選択してください'); return; }
+      const name = document.getElementById('add-name').value.trim();
+      if (!name) { alert('タスク名を入力してください'); return; }
+      const task = {
+        name: name,
+        category: document.getElementById('add-category').value,
+        urgency: addUrgency,
+        progress: document.getElementById('add-progress').value,
+        status: document.getElementById('add-status').value,
+        deadline: document.getElementById('add-deadline').value || '',
+        memo: document.getElementById('add-memo').value || '',
+        password: sessionPassword,
+      };
+      const btn = document.getElementById('add-save-btn');
+      btn.disabled = true;
+      try {
+        const res = await fetch(GAS_URL + '?action=addTask', {
+          method: 'POST',
+          body: JSON.stringify(task)
+        });
+        const data = await res.json();
+        if (data.success) {
+          closeAddModal();
+          loadTasks();
+        } else {
+          alert('追加に失敗しました。');
+        }
+      } catch(e) {
+        alert('追加に失敗しました。');
+      }
+      btn.disabled = false;
     }
   </script>
 </body>
