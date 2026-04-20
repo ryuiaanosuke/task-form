@@ -64,8 +64,6 @@
     }
     .loading { text-align: center; padding: 40px; color: #888; }
     .empty { text-align: center; padding: 40px; color: #888; font-size: 16px; }
-
-    /* モーダル */
     .modal-overlay {
       display: none;
       position: fixed;
@@ -114,25 +112,22 @@
 </head>
 <body>
 
-  <!-- ログイン画面 -->
   <div id="login-area" class="card">
     <h1>🔐 タスク管理</h1>
     <div class="field">
       <label>パスワード</label>
       <input type="password" id="password" placeholder="パスワードを入力" onkeydown="if(event.key==='Enter')login()">
     </div>
-    <button class="btn" onclick="login()">ログイン</button>
+    <button class="btn" id="login-btn" onclick="login()">ログイン</button>
     <div class="error" id="login-error"></div>
   </div>
 
-  <!-- タスク一覧 -->
   <div id="list-area" style="display:none">
     <div class="header-bar">📋 タスク一覧</div>
     <div id="loading" class="loading">読み込み中...</div>
     <div id="task-list"></div>
   </div>
 
-  <!-- 編集モーダル -->
   <div class="modal-overlay" id="modal">
     <div class="modal">
       <h2>✏️ タスク編集</h2>
@@ -203,19 +198,36 @@
 
   <script>
     const GAS_URL = 'https://script.google.com/macros/s/AKfycbwCfyiU-gtk86w92JUqGuoLUMdJltSZ6rf0W9tXOeOxYB0i90MeixoiM1-xdS3EtQK2/exec';
-    const PASSWORD = 'PASSWORD_CHECK';
+    let sessionPassword = '';
     let editingTaskId = null;
     let editUrgency = '';
     let allTasks = [];
 
-    function login() {
+    async function login() {
       const input = document.getElementById('password').value;
-      if (input === PASSWORD) {
-        document.getElementById('login-area').style.display = 'none';
-        document.getElementById('list-area').style.display = 'block';
-        loadTasks();
-      } else {
-        document.getElementById('login-error').textContent = 'パスワードが違います';
+      if (!input) return;
+      const btn = document.getElementById('login-btn');
+      btn.disabled = true;
+      btn.textContent = '確認中...';
+      document.getElementById('login-error').textContent = '';
+
+      try {
+        const res = await fetch(GAS_URL + '?action=checkPassword&password=' + encodeURIComponent(input));
+        const data = await res.json();
+        if (data.success) {
+          sessionPassword = input;
+          document.getElementById('login-area').style.display = 'none';
+          document.getElementById('list-area').style.display = 'block';
+          loadTasks();
+        } else {
+          document.getElementById('login-error').textContent = 'パスワードが違います';
+          btn.disabled = false;
+          btn.textContent = 'ログイン';
+        }
+      } catch(e) {
+        document.getElementById('login-error').textContent = '通信エラーが発生しました';
+        btn.disabled = false;
+        btn.textContent = 'ログイン';
       }
     }
 
@@ -223,8 +235,12 @@
       document.getElementById('loading').style.display = 'block';
       document.getElementById('task-list').innerHTML = '';
       try {
-        const res = await fetch(GAS_URL + '?action=getTasks');
+        const res = await fetch(GAS_URL + '?action=getTasks&password=' + encodeURIComponent(sessionPassword));
         const data = await res.json();
+        if (data.error) {
+          document.getElementById('loading').textContent = '認証エラー：再読み込みしてください';
+          return;
+        }
         allTasks = data.tasks || [];
         renderTasks(allTasks);
       } catch(e) {
@@ -312,6 +328,7 @@
         status: document.getElementById('edit-status').value,
         deadline: document.getElementById('edit-deadline').value || '',
         memo: document.getElementById('edit-memo').value || '',
+        password: sessionPassword,
       };
 
       document.getElementById('save-btn').disabled = true;
