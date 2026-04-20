@@ -22,7 +22,7 @@
     h1 { font-size: 20px; color: #111; margin-bottom: 28px; text-align: center; }
     .field { margin-bottom: 24px; }
     label { display: block; font-size: 15px; color: #444; margin-bottom: 8px; font-weight: 600; }
-    input[type="text"], input[type="date"], select, textarea {
+    input[type="text"], input[type="date"], input[type="password"], select, textarea {
       width: 100%; padding: 16px; border: 1.5px solid #e0e0e0;
       border-radius: 12px; font-size: 16px; color: #111; background: #fafafa;
       appearance: none; -webkit-appearance: none;
@@ -32,7 +32,7 @@
       resize: vertical;
       font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif;
     }
-    input[type="text"]:focus, input[type="date"]:focus, select:focus, textarea:focus {
+    input:focus, select:focus, textarea:focus {
       outline: none; border-color: #06C755; background: white;
     }
     .urgency-group { display: flex; gap: 12px; }
@@ -50,25 +50,31 @@
       cursor: pointer; margin-top: 8px;
     }
     .submit-btn:disabled { background: #ccc; }
-    .success { text-align: center; padding: 60px 20px; display: none; }
+    .success { text-align: center; padding: 60px 20px; }
     .success .icon { font-size: 56px; margin-bottom: 16px; }
     .success p { color: #333; font-size: 18px; }
-    .password-field { margin-bottom: 24px; }
-    .password-field label { display: block; font-size: 15px; color: #444; margin-bottom: 8px; font-weight: 600; }
-    .password-field input {
-      width: 100%; padding: 16px; border: 1.5px solid #e0e0e0;
-      border-radius: 12px; font-size: 16px; color: #111; background: #fafafa;
-    }
+    .pw-screen { text-align: center; padding: 40px 0; }
+    .pw-screen p { color: #888; font-size: 15px; margin-bottom: 16px; }
   </style>
 </head>
 <body>
   <div class="card">
     <h1 id="form-title">📋 タスク追加</h1>
-    <div id="form-area">
-      <div class="password-field">
-        <label>パスワード</label>
-        <input type="password" id="liff-password" placeholder="パスワードを入力">
+
+    <!-- パスワード入力画面（URLにpwがない場合） -->
+    <div id="pw-area" style="display:none">
+      <div class="pw-screen">
+        <p>パスワードを入力してください</p>
+        <div class="field">
+          <input type="password" id="manual-password" placeholder="パスワード">
+        </div>
+        <button class="submit-btn" onclick="checkManualPassword()">確認</button>
+        <p id="pw-error" style="color:#ff4444;margin-top:12px;font-size:14px;"></p>
       </div>
+    </div>
+
+    <!-- メインフォーム -->
+    <div id="form-area" style="display:none">
       <div class="field">
         <label>タスク名</label>
         <input type="text" id="taskName" placeholder="例：●●社_事業計画書作成">
@@ -129,9 +135,13 @@
       </div>
       <button class="submit-btn" id="submitBtn" onclick="submitTask()">登録する</button>
     </div>
-    <div class="success" id="success-area" style="display:none">
-      <div class="icon">✅</div>
-      <p id="success-msg">タスクを登録しました！</p>
+
+    <!-- 完了画面 -->
+    <div id="success-area" style="display:none">
+      <div class="success">
+        <div class="icon">✅</div>
+        <p id="success-msg">タスクを登録しました！</p>
+      </div>
     </div>
   </div>
 
@@ -140,6 +150,7 @@
     const LIFF_ID = '2009673261-xpara1hm';
     let selectedUrgency = '';
     let editTaskId = null;
+    let sessionPassword = '';
 
     async function init() {
       try {
@@ -149,6 +160,7 @@
       }
 
       const params = new URLSearchParams(window.location.search);
+      const pw = params.get('pw');
       const taskId = params.get('taskId');
 
       if (taskId) {
@@ -162,6 +174,31 @@
         document.getElementById('memo').value = params.get('memo') || '';
         selectUrgencyByValue(params.get('urgency') || '');
         document.getElementById('submitBtn').textContent = '更新する';
+      }
+
+      if (pw) {
+        sessionPassword = pw;
+        document.getElementById('form-area').style.display = 'block';
+      } else {
+        document.getElementById('pw-area').style.display = 'block';
+      }
+    }
+
+    async function checkManualPassword() {
+      const input = document.getElementById('manual-password').value;
+      if (!input) return;
+      try {
+        const res = await fetch(GAS_URL + '?action=checkPassword&password=' + encodeURIComponent(input));
+        const data = await res.json();
+        if (data.success) {
+          sessionPassword = input;
+          document.getElementById('pw-area').style.display = 'none';
+          document.getElementById('form-area').style.display = 'block';
+        } else {
+          document.getElementById('pw-error').textContent = 'パスワードが違います';
+        }
+      } catch(e) {
+        document.getElementById('pw-error').textContent = '通信エラーが発生しました';
       }
     }
 
@@ -182,8 +219,6 @@
     }
 
     async function submitTask() {
-      const password = document.getElementById('liff-password').value;
-      if (!password) { alert('パスワードを入力してください'); return; }
       const name = document.getElementById('taskName').value.trim();
       if (!name) { alert('タスク名を入力してください'); return; }
       if (!selectedUrgency) { alert('緊急性を選択してください'); return; }
@@ -196,7 +231,7 @@
         status: document.getElementById('status').value,
         deadline: document.getElementById('deadline').value || '',
         memo: document.getElementById('memo').value || '',
-        password: password,
+        password: sessionPassword,
       };
 
       document.getElementById('submitBtn').disabled = true;
