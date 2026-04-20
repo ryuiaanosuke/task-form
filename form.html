@@ -53,12 +53,22 @@
     .success { text-align: center; padding: 60px 20px; display: none; }
     .success .icon { font-size: 56px; margin-bottom: 16px; }
     .success p { color: #333; font-size: 18px; }
+    .password-field { margin-bottom: 24px; }
+    .password-field label { display: block; font-size: 15px; color: #444; margin-bottom: 8px; font-weight: 600; }
+    .password-field input {
+      width: 100%; padding: 16px; border: 1.5px solid #e0e0e0;
+      border-radius: 12px; font-size: 16px; color: #111; background: #fafafa;
+    }
   </style>
 </head>
 <body>
   <div class="card">
     <h1 id="form-title">📋 タスク追加</h1>
     <div id="form-area">
+      <div class="password-field">
+        <label>パスワード</label>
+        <input type="password" id="liff-password" placeholder="パスワードを入力">
+      </div>
       <div class="field">
         <label>タスク名</label>
         <input type="text" id="taskName" placeholder="例：●●社_事業計画書作成">
@@ -172,6 +182,8 @@
     }
 
     async function submitTask() {
+      const password = document.getElementById('liff-password').value;
+      if (!password) { alert('パスワードを入力してください'); return; }
       const name = document.getElementById('taskName').value.trim();
       if (!name) { alert('タスク名を入力してください'); return; }
       if (!selectedUrgency) { alert('緊急性を選択してください'); return; }
@@ -184,6 +196,7 @@
         status: document.getElementById('status').value,
         deadline: document.getElementById('deadline').value || '',
         memo: document.getElementById('memo').value || '',
+        password: password,
       };
 
       document.getElementById('submitBtn').disabled = true;
@@ -204,6 +217,9 @@
           setTimeout(() => {
             if (liff.isInClient()) liff.closeWindow();
           }, 1500);
+        } else {
+          alert('パスワードが違うか、処理に失敗しました。');
+          document.getElementById('submitBtn').disabled = false;
         }
       } catch(e) {
         alert(editTaskId ? '更新に失敗しました。' : '登録に失敗しました。');
